@@ -1,0 +1,291 @@
+{
+  "info": {
+    "_postman_id": "7bfa881e-8419-4b67-b5b4-7f12e847c201",
+    "name": "Teacher Session Booking Platform API",
+    "description": "Postman collection for Teacher Session Booking REST API built with Node.js, TypeScript, Express.js, MongoDB and Mongoose.\n\nIncludes all 6 required assignment endpoints plus supporting endpoints with automated variable extraction.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "teacherId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "dateTimestamp",
+      "value": "1773000000000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Check API health and server uptime"
+      },
+      "response": []
+    },
+    {
+      "name": "1. API 1 - Create User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "if (response.success && response.data && response.data._id) {",
+              "    pm.collectionVariables.set('userId', response.data._id);",
+              "    console.log('Saved userId:', response.data._id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john.doe." + Date.now() + "@example.com\",\n  \"phone\": \"+1-555-0199\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["users"]
+        },
+        "description": "Create a new user with unique email"
+      },
+      "response": []
+    },
+    {
+      "name": "2. Helper - Create Teacher",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "if (response.success && response.data && response.data._id) {",
+              "    pm.collectionVariables.set('teacherId', response.data._id);",
+              "    console.log('Saved teacherId:', response.data._id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Dr. Eleanor Vance\",\n  \"email\": \"eleanor.vance." + Date.now() + "@example.com\",\n  \"specialization\": \"IELTS Academic & Business English\",\n  \"experience\": 8\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/teachers",
+          "host": ["{{baseUrl}}"],
+          "path": ["teachers"]
+        },
+        "description": "Create a teacher record to schedule sessions with"
+      },
+      "response": []
+    },
+    {
+      "name": "3. API 2 - Create Session",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const now = new Date();",
+              "// Tomorrow at 10:00 UTC",
+              "const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 10, 0, 0, 0));",
+              "const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 11, 0, 0, 0));",
+              "pm.variables.set('tomorrowStart', start.toISOString());",
+              "pm.variables.set('tomorrowEnd', end.toISOString());",
+              "pm.collectionVariables.set('dateTimestamp', start.getTime().toString());"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "if (response.success && response.data && response.data._id) {",
+              "    pm.collectionVariables.set('sessionId', response.data._id);",
+              "    console.log('Saved sessionId:', response.data._id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"teacherId\": \"{{teacherId}}\",\n  \"startTime\": \"{{tomorrowStart}}\",\n  \"endTime\": \"{{tomorrowEnd}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sessions",
+          "host": ["{{baseUrl}}"],
+          "path": ["sessions"]
+        },
+        "description": "Create a new session for a teacher. Default status is AVAILABLE. Validates teacher exists and endTime > startTime."
+      },
+      "response": []
+    },
+    {
+      "name": "4. API 3 - Available Sessions for Booking (Aggregation Pipeline)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/sessions/available?dateTimestamp={{dateTimestamp}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["sessions", "available"],
+          "query": [
+            {
+              "key": "dateTimestamp",
+              "value": "{{dateTimestamp}}",
+              "description": "Unix timestamp in ms/s or ISO date string"
+            }
+          ]
+        },
+        "description": "Returns all AVAILABLE sessions for the specified date using MongoDB Aggregation Pipeline"
+      },
+      "response": []
+    },
+    {
+      "name": "5. API 4 - Book Session",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{userId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sessions/{{sessionId}}/book",
+          "host": ["{{baseUrl}}"],
+          "path": ["sessions", "{{sessionId}}", "book"]
+        },
+        "description": "Book an available session for a user. Status updates to BOOKED."
+      },
+      "response": []
+    },
+    {
+      "name": "6. API 5 - Mark Session Complete",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/sessions/{{sessionId}}/complete",
+          "host": ["{{baseUrl}}"],
+          "path": ["sessions", "{{sessionId}}", "complete"]
+        },
+        "description": "Mark a BOOKED session as COMPLETED and set completedAt timestamp."
+      },
+      "response": []
+    },
+    {
+      "name": "7. API 6 - User Session List (Aggregation Pipeline)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users/{{userId}}/sessions",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "{{userId}}", "sessions"]
+        },
+        "description": "Return all sessions for the user separated into Upcoming Sessions and Completed Sessions using MongoDB Aggregation Pipeline"
+      },
+      "response": []
+    },
+    {
+      "name": "8. Utility - List All Users",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users",
+          "host": ["{{baseUrl}}"],
+          "path": ["users"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "9. Utility - List All Teachers",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/teachers",
+          "host": ["{{baseUrl}}"],
+          "path": ["teachers"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "10. Utility - List All Sessions",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/sessions",
+          "host": ["{{baseUrl}}"],
+          "path": ["sessions"]
+        }
+      },
+      "response": []
+    }
+  ]
+}
